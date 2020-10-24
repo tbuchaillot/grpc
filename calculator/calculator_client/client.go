@@ -4,6 +4,9 @@ import (
 	"context"
 	"github.com/tbuchaillot/grpc/calculator/calculatorpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"io"
 	"log"
 	"time"
@@ -28,6 +31,8 @@ func main(){
 	doClientStreaming(c)
 	log.Println("-------------------------------")
 	doBiDiStreaming(c)
+	log.Println("-------------------------------")
+	doErrorUnary(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient){
@@ -140,4 +145,37 @@ func doBiDiStreaming( c calculatorpb.CalculatorServiceClient){
 
 	//waiting for close
 	<- waitCh
+}
+
+func doErrorUnary(c calculatorpb.CalculatorServiceClient){
+	log.Println("Starting to do a SquareRoot Unary RPC..")
+
+	//correct
+	doErrorCall(c,10)
+
+	// invalid error
+	doErrorCall(c, -10)
+}
+
+func doErrorCall(c calculatorpb.CalculatorServiceClient, number int32) {
+	req := &calculatorpb.SquareRootRequest{
+		Number: number,
+	}
+	res, err := c.SquareRoot(context.Background(),req)
+	if err != nil {
+
+		respErr, ok := status.FromError(err)
+		if ok {
+			//actual error from gRPC (user error)
+			if respErr.Code() == codes.InvalidArgument{
+				log.Println("We probably sent a negative number!")
+			}else{
+				log.Println("A different error type :O!")
+			}
+		}else{
+			log.Fatalf("Big Error while calling SquareRoot RPC: %v",err)
+		}
+	}else{
+		log.Printf("Result from SquareRoot of %v : %v",number, res.GetNumberRoot())
+	}
 }
