@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/reflection"
 
 	"io"
 	"log"
@@ -133,6 +134,7 @@ func main(){
 
 	s := grpc.NewServer()
 	calculatorpb.RegisterCalculatorServiceServer(s,&server{})
+	reflection.Register(s)
 
 	log.Println("Serving at 50051")
 	if err:= s.Serve(lis); err != nil {
